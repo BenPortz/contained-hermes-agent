@@ -331,7 +331,7 @@ def parse_step_output(out: str) -> tuple[str | None, str]:
     """Return (question, body). question=None means the step finished the project.
 
     Defense in depth against loose small-model formatting: explicit markers first
-    (STATUS: first line, QUESTION: anywhere after), then a heuristic so an unmarked
+    (STATUS: first line, QUESTION: anywhere after), then a trailing-question-mark check so an unmarked
     question can never be silently filed as 'done'. Markers may carry a list-bullet
     prefix ("- STATUS:", "* QUESTION:"), which small models add under pressure."""
 

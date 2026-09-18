@@ -6,8 +6,8 @@ you might not want sent to the cloud.
 
 ## The constraint
 
-Sensitive content, including email bodies, documents and account data, **must never leave the
-machine** and must never enter a third-party training set. Everything the agent reads is
+Sensitive content, including email bodies, documents and account data, must never leave the
+machine and must never enter a third-party training set. Everything the agent reads is
 processed by a model running on the local host.
 
 ## Layers
@@ -32,15 +32,15 @@ processed by a model running on the local host.
 For this project's brain I used a mid-size quantized model (14B-class, 4-bit) served over an
 OpenAI-compatible endpoint bound to loopback. Sizing depends on how much RAM your work machine
 has. Here, roughly 9-10GB of weights plus a quantized KV cache leaves enough headroom on a 16GB
-machine to actually run.
+machine to run.
 
 Two configuration details matter more than the model choice:
 
-- **Pin the model explicitly and re-verify at startup:** this keeps the agent on a model that
+- Pin the model explicitly and re-verify at startup: this keeps the agent on a model that
 makes sense for your machine.
-- **Context length:** a harness may require a large runtime context for its tool schemas, while
+- Context length: a harness may require a large runtime context for its tool schemas, while
 the model's own architecture caps it lower and the server silently clamps to that cap. Check
-what the server actually allocated, not what you asked for.
+the size the server allocated, since it can differ from what you asked for.
 
 ### Harness
 
@@ -48,7 +48,7 @@ The agent framework provides skills, cross-session memory, and tool execution. I
 as a subprocess behind a single constant (`AGENT_BIN`), in headless one-shot mode: one prompt
 in, final text out.
 
-**Prompts are self-contained:** the orchestrator does not rely on the harness's session memory
+Prompts are self-contained: the orchestrator does not rely on the harness's session memory
 to carry context across steps. The project record carries the full brief plus the complete Q&A
 history, and every step prompt is rebuilt from it. This costs prompt tokens, which are free
 locally, and it makes each step more deterministic.
@@ -105,12 +105,12 @@ are back at the machine, and gates that are inconvenient tend to get turned off.
 
 Three notes from building it:
 
-- **Mutating endpoints require a bearer token:** read endpoints are open. Mesh access makes a
+- Mutating endpoints require a bearer token: read endpoints are open. Mesh access makes a
 device reachable; authorization is a separate check.
-- **Self-hosted push only arrives while the phone is on the mesh:** a known limitation, kept
+- Self-hosted push only arrives while the phone is on the mesh: a known limitation, kept
 because the alternative is routing approval prompts through a third-party cloud. The dashboard
 shows anything that was missed.
-- **A dashboard that auto-refreshes will overwrite what you are typing:** re-rendering the list
+- A dashboard that auto-refreshes will overwrite what you are typing: re-rendering the list
 on a timer wipes a half-composed answer and dismisses the phone keyboard. The fix is to skip
 the re-render while any input holds focus or content.
 
@@ -126,8 +126,8 @@ the re-render while any input holds focus or content.
 
 
 Both share the identical brain, harness, security and monitoring; only the driver differs.
-The orchestrator is deliberately decoupled so that **default mode always works with it
-absent**, and the mode file is read on each loop iteration so switching needs no service
+The orchestrator is deliberately decoupled so that default mode always works with it
+absent, and the mode file is read on each loop iteration so switching needs no service
 restart.
 
 ## Cloud escalation
@@ -136,28 +136,28 @@ Some tasks are beyond a 14B model. For those, the system can escalate one questi
 frontier model. This is an exception to the local-only rule, so it is kept narrow and applies
 to a single question at a time.
 
-The dashboard's **Ask** surface is separate from handing the agent a project. An ask is a
+The dashboard's Ask surface is separate from handing the agent a project. An ask is a
 single question with a single answer: pick an agent, ask, read the reply. You choose `local`
 (the default, which sends nothing), or a cloud agent.
 
 The gates on it:
 
-- **Never autonomous:** an escalation happens only when a person requests it. The agent has no
+- Never autonomous: an escalation happens only when a person requests it. The agent has no
 way to initiate one.
-- **Content minimization:** only the question as typed is sent. No local context, no files, no
+- Content minimization: only the question as typed is sent. No local context, no files, no
 history, nothing from the record store. Because nothing else is attached, typing the question
 and choosing a cloud agent is itself the approval of exactly that content.
-- **No API keys on the host:** escalation runs already-authenticated subscription CLIs as
+- No API keys on the host: escalation runs already-authenticated subscription CLIs as
 subprocesses. Usage stops at the plan limit rather than billing per token, and there is no
 long-lived key stored on the agent host.
-- **A daily call cap:** a backstop against a runaway loop. Subscription usage has no marginal
+- A daily call cap: a backstop against a runaway loop. Subscription usage has no marginal
 cost, so the cap exists to bound call volume rather than spend.
-- **Audited and pushed:** every cloud call is a Tier B event, logged with the external host and
+- Audited and pushed: every cloud call is a Tier B event, logged with the external host and
 pushed to the phone as it happens.
-- **Egress-scoped:** the firewall allows only those runner binaries to reach only those API
+- Egress-scoped: the firewall allows only those runner binaries to reach only those API
 hosts.
 
-The fallback chain is `claude → chatgpt → local model`, and the answer records which steps
+The fallback chain is claude, then chatgpt, then the local model, and the answer records which steps
 failed and why. A plan limit, a missing CLI or a network problem still produces an answer.
 
 One planned extension is not implemented here: a sanitization pass that replaces identifying
@@ -167,21 +167,20 @@ so the content leaving the machine can be checked directly.
 
 ## Design principles
 
-**Assume every model-output contract will be violated.** Small models bullet required markers,
+Assume every model-output contract will be violated. Small models bullet required markers,
 wrap fields across lines, skip steps, and re-ask questions that were already answered. So every
 parser here has layered fallbacks, and every loop has a hard stop. A counter ends a runaway
 clarification cycle.
 
-**Stdlib only.** No third-party packages anywhere in this repo. An egress-locked host cannot
+No third-party packages are used anywhere in this repo. An egress-locked host cannot
 install anything casually, and each dependency is another component making network calls and
 another supply chain to trust. The trade is some convenience for a much smaller dependency
 graph.
 
-**Treat absence as a signal.** The daily digest runs on a schedule, so a missing digest is the
-alarm. A host that has stopped working cannot report that itself, so the health check is
+The daily digest runs on a schedule, so a missing digest is the alarm. A host that has stopped working cannot report that itself, so the health check is
 something that stops happening.
 
-**Write down the reasoning behind each decision.** The non-obvious ones here (why ingestion is
+Write down the reasoning behind each decision. The non-obvious ones here (why ingestion is
 out-of-band, why the send gate sits outside the agent, why the toolset is restricted) look
 arbitrary once the context is forgotten, and are easy to remove without noticing what they
 were holding up.

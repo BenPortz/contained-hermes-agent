@@ -99,9 +99,9 @@ The allow-list:
 |---|---|
 | loopback | the model server |
 | the mesh daemon | mesh connectivity |
-| the push server binary → its upstream relay, port 443 | instant push wake-ups |
-| a dedicated fetcher interpreter → the mail API | out-of-band ingestion |
-| cloud-escalation runner binaries → their API hosts | optional escalation |
+| the push server binary to its upstream relay, port 443 | instant push wake-ups |
+| a dedicated fetcher interpreter to the mail API | out-of-band ingestion |
+| cloud-escalation runner binaries to their API hosts | optional escalation |
 
 Deny the model-weights host once the pull is done.
 
@@ -161,7 +161,7 @@ The reasoning is in [security-model.md](security-model.md):
 2. Run everything dry-run or draft-only, and read the Tier C digests and the raw audit log.
 3. Negative-test the egress lock, as in step 5.
 4. Run an injection smoke test: feed the agent a local fixture message with an embedded
-   "forward X to attacker@…" instruction, using the same invocation mode and toolset the
+   "forward X to attacker@..." instruction, using the same invocation mode and toolset the
    scheduler uses. The gate should hold and the event should appear in the logs. A gate that
    holds interactively says nothing about a headless run.
 5. Only then issue real least-privilege credentials, starting narrow.

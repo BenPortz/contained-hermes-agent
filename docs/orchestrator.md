@@ -53,11 +53,11 @@ inspecting or repairing state is straightforward. A queue this size is well serv
 
 The loop drains work in this order:
 
-1. **Asks:** single-turn questions from the dashboard. Someone is waiting on a reply, so these
+1. Asks: single-turn questions from the dashboard. Someone is waiting on a reply, so these
    run before anything else.
-2. **Projects:** answered clarifications first, then fresh projects by priority. A project
+2. Projects: answered clarifications first, then fresh projects by priority. A project
    whose question you have already answered should not wait behind a new one.
-3. **Ambient work:** email triage and similar background tasks, only when nothing above is
+3. Ambient work: email triage and similar background tasks, only when nothing above is
    pending. It fills idle time without competing with a waiting person.
 
 ## Contract with the model, and its backstops
@@ -69,30 +69,28 @@ history, and must reply in a fixed format: a `STATUS:` line, then either the del
 Small models follow this loosely, so each of the following handles a specific way the contract
 was broken during development:
 
-- **Marker parsing with three fallbacks:** `STATUS:` on the first line, then `QUESTION:`
-  anywhere, then a trailing-question-mark heuristic. Recording an unmarked question as "done"
+- Marker parsing with three fallbacks: `STATUS:` on the first line, then `QUESTION:`
+  anywhere, then a check for a trailing question mark. Recording an unmarked question as "done"
   would ship an unfinished deliverable and close the project.
-- **List-bullet tolerance:** models emit `- STATUS:` and `* QUESTION:` under formatting
+- List-bullet tolerance: models emit `- STATUS:` and `* QUESTION:` under formatting
   pressure, so bullet prefixes are stripped before matching.
-- **A clarification budget:** a hard cap on questions per project. Models re-ask questions that
+- A clarification budget: a hard cap on questions per project. Models re-ask questions that
   were already answered and will otherwise loop. The prompt states the budget, and the counter
   enforces it. Once the budget is spent the scheduler ships whatever exists.
-- **Blank-line termination for wrapped fields:** a multi-line draft field ends at the first
+- Blank-line termination for wrapped fields: a multi-line draft field ends at the first
   blank line, so a trailing reasoning block appended by the model is not swallowed into the
   payload.
 
-Assume every model-output contract needs a deterministic backstop in the parser.
-
 ## Failure handling
 
-- **Every terminal outcome sends a push.** Done, blocked and needs-input all notify. An earlier
+- Every terminal outcome sends a push. Done, blocked and needs-input all notify. An earlier
   version pushed only on success and questions, which meant a blocked project failed silently
   and looked the same as a system with nothing to do.
-- **Timeouts are handled as outcomes.** A step that exceeds its wall clock marks the project
+- Timeouts are handled as outcomes. A step that exceeds its wall clock marks the project
   `blocked` and records the log path in `notes`, so the record does not sit stuck mid-flight.
-- **Full output is kept.** The dashboard shows a truncated excerpt; the complete step output
+- Full output is kept. The dashboard shows a truncated excerpt; the complete step output
   including stderr goes to `logs/orchestrator/<step-id>.md`.
-- **Cloud failures do not stop the loop.** Escalation errors are caught broadly and turned into
+- Cloud failures do not stop the loop. Escalation errors are caught broadly and turned into
   a fallback, since a scheduler that exits on a network error also stops all unrelated work.
 
 ## Integration with gates and monitoring

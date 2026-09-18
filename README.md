@@ -30,7 +30,7 @@ effect.
 
 ## Why this exists
 
-There are two reasons, and they happen to want the same system.
+There are two reasons, and one design serves both.
 
 The first is cost. Repetitive or bulk work, such as triaging a mailbox, summarizing a backlog
 or producing first drafts, spends frontier-model tokens on tasks a 14B-class local model can
@@ -66,12 +66,12 @@ See [docs/security-model.md](docs/security-model.md).
 
 | Control | What it buys |
 |---|---|
-| **Default-deny egress firewall** | A compromised agent has nowhere to send anything. The single most useful control. |
-| **Out-of-band ingestion** | A trusted non-agent process fetches mail read-only into inert local files. The agent never holds the mail credential and never makes a network call. |
-| **Minimal toolsets per task** | Triage runs with a memory-only toolset: no network tool, no send tool. An injection that persuades the model still has nothing available to act with. |
-| **Structural approval gates** | The agent produces a draft; a separate human-approved path performs the send. Enforced outside the agent, since headless runs bypass harness prompts. |
-| **Least-privilege credentials** | A read-only OAuth scope, re-checked by the fetcher at startup, which exits if the token carries anything broader. |
-| **Deterministic audit** | Every action is appended to JSONL and compared against allowlists. Comparison is mechanical; a model may reformat a digest for reading. |
+| Default-deny egress firewall | A compromised agent has nowhere to send anything. The single most useful control. |
+| Out-of-band ingestion | A trusted non-agent process fetches mail read-only into inert local files. The agent never holds the mail credential and never makes a network call. |
+| Minimal toolsets per task | Triage runs with a memory-only toolset: no network tool, no send tool. An injection that persuades the model still has nothing available to act with. |
+| Structural approval gates | The agent produces a draft; a separate human-approved path performs the send. Enforced outside the agent, since headless runs bypass harness prompts. |
+| Least-privilege credentials | A read-only OAuth scope, re-checked by the fetcher at startup, which exits if the token carries anything broader. |
+| Deterministic audit | Every action is appended to JSONL and compared against allowlists. Comparison is mechanical; a model may reformat a digest for reading. |
 
 ## Repo layout
 
@@ -103,29 +103,28 @@ inbox/  projects/      record schemas and examples
 
 ## Implementation notes
 
-**Stdlib only.** The hub, the dashboard, the OAuth flow, the mail client and the scheduler use
+The hub, the dashboard, the OAuth flow, the mail client and the scheduler use
 no third-party packages. On a host with locked-down egress you cannot install anything
 casually, and each dependency is another thing that can make network calls. The Gmail API is
 plain REST and JSON, so token refresh, list and get are a handful of `urllib` calls.
 
-**Every model-output contract has a deterministic backstop.** Small local models drift from
+Every model-output contract has a deterministic backstop. Small local models drift from
 formatting instructions: they bullet required markers, wrap fields across lines, and re-ask
 questions that were already answered. The parsers have layered fallbacks, and a counter ends a
 runaway clarification loop.
 
-**Restricting toolsets serves two purposes.** It is the security control, and it is also the
+Restricting toolsets serves two purposes. It is the security control, and it is also the
 main performance lever: the full tool-schema block is tens of kilobytes reprocessed on every
 agentic turn, which dominates step latency on a laptop-class host.
 
-**Mode switching does not require a redeploy.** `config/mode.env` decides whether the
+Mode switching does not require a redeploy. `config/mode.env` decides whether the
 scheduler drives the queue or idles, and it is read each loop iteration.
 
-**Escalation degrades gracefully.** A cloud ask falls back through claude → chatgpt → local
-model, and the answer carries a note of what failed along the way, so a plan limit or a missing
+Escalation degrades gracefully. A cloud ask falls back through claude, then chatgpt, then the
+local model, and the answer carries a note of what failed along the way, so a plan limit or a missing
 CLI still produces an answer.
 
-**A missing signal is the alarm.** The daily digest runs on a schedule, so its absence is what
-indicates a problem. A host that has stopped working cannot report that itself.
+The daily digest runs on a schedule, so its absence is what indicates a problem. A host that has stopped working cannot report that itself.
 
 ## Status
 

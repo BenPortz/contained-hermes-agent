@@ -34,19 +34,19 @@ nothing available to carry it out.
 
 ## Credential design
 
-- **Gmail API with a read-only OAuth scope (`gmail.readonly`)**, chosen over IMAP with an app
+- Gmail API with a read-only OAuth scope (`gmail.readonly`), chosen over IMAP with an app
   password because it supports a real read-only scope. IMAP app passwords grant read and send
   together with no read-only option, so they cannot express the constraint this design needs.
-- **A dedicated OAuth client**, separate from any other client on the account, so the agent's
+- A dedicated OAuth client, separate from any other client on the account, so the agent's
   access can be revoked on its own.
-- **The consent screen stays in testing mode** with the owner as the only test user. There is
+- The consent screen stays in testing mode with the owner as the only test user. There is
   no third party to publish for, and this avoids restricted-scope verification.
-- **Tokens are minted interactively.** `gmail_auth.py` runs a stdlib loopback and PKCE flow and
+- Tokens are minted interactively. `gmail_auth.py` runs a stdlib loopback and PKCE flow and
   refuses to save a token carrying any scope broader than read-only, in case the consent screen
   returns more than was requested.
-- **Credentials live outside the repo and outside the agent's reach**, with the directory at
+- Credentials live outside the repo and outside the agent's reach, with the directory at
   `700` and files at `600`.
-- `gmail_fetch.py` **re-checks the read-only scope at startup** and exits if the token carries
+- `gmail_fetch.py` re-checks the read-only scope at startup and exits if the token carries
   anything else. This is a second, independent check, since a mutating credential in this system
   would be difficult to contain.
 
@@ -55,17 +55,17 @@ nothing available to carry it out.
 `scripts/gmail_fetch.py` is a trusted, non-agent process. Each of its invariants is enforced in
 code rather than assumed from the OAuth scope:
 
-- **Read-only:** HTTP GET only, and it refuses to run unless the token's scope is exactly
+- Read-only: HTTP GET only, and it refuses to run unless the token's scope is exactly
   `gmail.readonly`.
-- **Least data:** headers plus a truncated plaintext body. Attachments are never downloaded.
-- **Audited:** every run logs one `email.read` event to Tier A with the host and credential id.
+- Least data: headers plus a truncated plaintext body. Attachments are never downloaded.
+- Audited: every run logs one `email.read` event to Tier A with the host and credential id.
   The fetcher logs its own actions, since the harness does not log them for it.
-- **Idempotent:** a message already present in `inbox/` is skipped, so a doubled or missed
+- Idempotent: a message already present in `inbox/` is skipped, so a doubled or missed
   scheduled run has no effect.
-- **Stdlib only:** the Gmail API is plain REST and JSON, so token refresh, list and get are a
+- Stdlib only: the Gmail API is plain REST and JSON, so token refresh, list and get are a
   handful of `urllib` calls. This avoids the official client library, which matters on a host
   where pip cannot reach the network, and keeps both the dependency and egress surface small.
-- **Testable without credentials:** `--self-test` exercises MIME parsing and the record writer
+- Testable without credentials: `--self-test` exercises MIME parsing and the record writer
   against a synthetic payload, with no token and no network.
 
 ### Scoping the egress hole
@@ -137,8 +137,7 @@ The gate is structural at each step, and the agent is not in the send path at al
   pipeline before pulling in bulk.
 - `--max` caps the number of NEW records ingested per run, not the listing. The fetcher pages
   the full query window, skips what is already on disk, and takes the OLDEST pending messages
-  first, so a backlog drains across successive runs. This ordering is a security property, not
-  just tidiness: capping the listing instead would let anyone able to send mail push an older
+  first, so a backlog drains across successive runs. This ordering is a security property: capping the listing instead would let anyone able to send mail push an older
   message below the cut, where it would age out of the window without ever being ingested. A
   run that leaves messages queued reports the count on stderr, and
   `tests/test_fetch_backlog.py` covers the case offline.

@@ -6,11 +6,11 @@ surfacing whatever is new or unknown.
 
 | Tier | What | Cadence | Implementation |
 |------|------|---------|----------------|
-| **A: Silent log** | Every agent action, append-only | Always, no notification | `scripts/audit_logger.py`, structured JSONL and the source of truth |
-| **B: Real-time alert** | High-risk events only | As they happen | `scripts/alert.py`, push and desktop notification |
-| **C: Per-workflow digest** | Summary of what one routine did | End of each workflow | `scripts/workflow_digest.py`, the main review surface |
-| **D: Nightly roll-up** | Trends and anomalies across the day | Nightly | `scripts/nightly_rollup.py`, aggregates Tier A |
-| **D+: Daily digest push** | Service health, project states, 24h roll-up, pushed to the phone | 08:00 daily | `scripts/daily_digest.py`. A missing digest indicates a problem; any service down raises the priority |
+| A: Silent log | Every agent action, append-only | Always, no notification | `scripts/audit_logger.py`, structured JSONL and the source of truth |
+| B: Real-time alert | High-risk events only | As they happen | `scripts/alert.py`, push and desktop notification |
+| C: Per-workflow digest | Summary of what one routine did | End of each workflow | `scripts/workflow_digest.py`, the main review surface |
+| D: Nightly roll-up | Trends and anomalies across the day | Nightly | `scripts/nightly_rollup.py`, aggregates Tier A |
+| D+: Daily digest push | Service health, project states, 24h roll-up, pushed to the phone | 08:00 daily | `scripts/daily_digest.py`. A missing digest indicates a problem; any service down raises the priority |
 
 ## What Tier B fires on
 
@@ -70,14 +70,14 @@ Example output:
 
 ## Design notes
 
-**Detection is deterministic.** Tiers A and D are diffs, allowlist lookups and log parsing. A
+Detection is deterministic. Tiers A and D are diffs, allowlist lookups and log parsing. A
 model may reformat a digest for readability downstream. It never decides whether anything is
 safe: it is unreliable at self-judgment, and it is injectable by the content it would be
 reviewing.
 
-**Alerting is limited to the five classes above.** A monitoring surface that notifies too often
+Alerting is limited to the five classes above. A monitoring surface that notifies too often
 stops being read, which leaves the appearance of oversight without the substance.
 
-**Logging never blocks on alerting.** Alerting is best-effort and its failures are swallowed by
+Logging never blocks on alerting. Alerting is best-effort and its failures are swallowed by
 the caller, so a push server being down cannot stop an event from being recorded. The log is
 the source of truth and the alert sits on top of it.
