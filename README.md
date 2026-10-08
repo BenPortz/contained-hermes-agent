@@ -1,4 +1,4 @@
-# security-hardened-local-hermes-agent
+# contained-hermes-agent
 
 An autonomous agent platform that runs entirely on a dedicated local machine. It is built to
 take sensitive or repetitive tasks off a main work machine without sending their content to a
